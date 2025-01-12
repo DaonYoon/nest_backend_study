@@ -13,8 +13,6 @@ export class BoardRepository extends Repository<Board> {
   async createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
     const { title, description } = createBoardDto;
 
-    console.log(this)
-
     const board = this.create({
       title,
       description,
