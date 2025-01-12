@@ -1,48 +1,47 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Board, BoardStatus } from './board.model';
-import { v1 as uuid } from 'uuid'
+import { InjectRepository } from '@nestjs/typeorm';
+import { BoardRepository } from './board.repository';
+import { Board } from './board.entity';
 import { CreateBoardDto } from './dto/create-board.dto';
+import { BoardStatus } from './board.status.enum';
 
 @Injectable()
 export class BoardsService {
-    private boards: Board[] = [];
+  constructor(private boardRepository: BoardRepository) {}
 
-    getAllBoards(): Board[] {
-        return this.boards
+
+  async getAllBoards(): Promise<Board[]> {
+    return this.boardRepository.find();
+  }
+
+  async getBoardById(id: number): Promise<Board> {
+    const found = await this.boardRepository.findOneBy({ id });
+
+    if (!found) {
+      throw new NotFoundException(`Can't find ${id}`);
     }
 
-    createBoard(CreateBoardDto: CreateBoardDto) {
-        const board = {
-            id: uuid(),
-            title: CreateBoardDto.title,
-            description: CreateBoardDto.description,
-            status: BoardStatus.PUBLIC
-        }
+    return found;
+  }
 
-        this.boards.push(board)
-        return board
+  createBoard(createBoardDto: CreateBoardDto): Promise<Board> {
+    return this.boardRepository.createBoard(createBoardDto);
+  }
+
+  async deleteBoard(id: number): Promise<void> {
+    const found = await this.boardRepository.delete(id);
+
+    if (found.affected === 0) {
+      throw new NotFoundException(`Can't find ${id}`);
     }
+  }
 
-    getBoardByiD(id: string): Board {
+  async updateBoardStatus(id:number, status: BoardStatus): Promise<Board> {
+    const board = await this.getBoardById(id);
 
-        const find = this.boards.find((board) => board.id = id)
+    board.status = status;
+    await this.boardRepository.save(board)
 
-        if (!find) throw new NotFoundException(`Can't find ${id} board`)
-        return find
-    }
-
-    deleteBoardById(id: string): void {
-        const found = this.getBoardByiD(id)
-
-        
-        this.boards = this.boards.filter((item) => item.id !== id)
-    }
-
-    updateBoardByID(id: string, status: BoardStatus): Board {
-        const board = this.getBoardByiD(id)
-
-        board.status = status
-
-        return board
-    }
+    return board
+  }
 }
